@@ -11,7 +11,7 @@ import RxCocoa
 
 // Extend Reactive entity with our structs to be able to use the .rx notation
 
-extension ProductName {
+extension Reactive where Base == ProductName {
     static var all: Single<[ProductName]> {
         return Single.create { single in
             ProductName.getAll { list in
@@ -22,7 +22,7 @@ extension ProductName {
     }
 }
 
-extension ProductDescription {
+extension Reactive where Base == ProductDescription {
     static var all: Single<[ProductDescription]> {
         return Single.create { single in
             ProductDescription.getAll { list in
@@ -32,6 +32,10 @@ extension ProductDescription {
         }
     }
 }
+
+// Let RxSwift know that these entities are reactive compatible
+extension ProductName: ReactiveCompatible { }
+extension ProductDescription: ReactiveCompatible { }
 
 
 class ViewController: UIViewController {
@@ -53,8 +57,8 @@ class ViewController: UIViewController {
         tableView.delegate = self
 
         Observable.zip(
-            ProductName.all.asObservable(),
-            ProductDescription.all.asObservable()
+            ProductName.rx.all.asObservable(),
+            ProductDescription.rx.all.asObservable()
         ).subscribe { nameList, descriptionList in
             nameList.enumerated().forEach { (offset, productName) in
                 self.products.append(.init(id: productName.id, name: productName.name, description: descriptionList[offset].description))
