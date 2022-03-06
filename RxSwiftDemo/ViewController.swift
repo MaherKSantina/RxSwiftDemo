@@ -54,13 +54,16 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        tableView.dataSource = self
         tableView.delegate = self
 
-        productsRelay.subscribe { products in
-            self.updateView()
-        }
-        .disposed(by: disposeBag)
+        productsRelay.asObservable()
+            .bind(to: tableView.rx.items(cellIdentifier: "Cell", cellType: TableViewCell.self)) {
+                index, product, cell in
+                cell.idLabel.text = String(product.id)
+                cell.nameLabel.text = product.name
+                cell.descriptionLabel.text = product.description
+            }
+            .disposed(by: disposeBag)
 
         Observable.zip(
             ProductName.rx.all.asObservable(),
@@ -73,29 +76,6 @@ class ViewController: UIViewController {
         .bind(to: productsRelay)
         .disposed(by: disposeBag)
 
-    }
-
-    func updateView() {
-        tableView?.reloadData()
-    }
-}
-
-extension ViewController: UITableViewDataSource {
-    func numberOfSections(in tableView: UITableView) -> Int {
-        return 1
-    }
-
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return products.count
-    }
-
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "Cell") as! TableViewCell
-        let product = products[indexPath.row]
-        cell.idLabel.text = String(product.id)
-        cell.nameLabel.text = product.name
-        cell.descriptionLabel.text = product.description
-        return cell
     }
 }
 
