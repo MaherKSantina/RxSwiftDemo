@@ -54,7 +54,14 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        tableView.delegate = self
+
+        tableView.rx.itemSelected
+            .subscribe (onNext: { indexPath in
+                let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "Details") as! DetailsViewController
+                vc.product = self.products[indexPath.row]
+                self.navigationController?.pushViewController(vc, animated: true)
+            })
+            .disposed(by: disposeBag)
 
         productsRelay.asObservable()
             .bind(to: tableView.rx.items(cellIdentifier: "Cell", cellType: TableViewCell.self)) {
@@ -76,13 +83,5 @@ class ViewController: UIViewController {
         .bind(to: productsRelay)
         .disposed(by: disposeBag)
 
-    }
-}
-
-extension ViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "Details") as! DetailsViewController
-        vc.product = products[indexPath.row]
-        navigationController?.pushViewController(vc, animated: true)
     }
 }
