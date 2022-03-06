@@ -9,9 +9,36 @@ import UIKit
 import RxSwift
 import RxCocoa
 
+// Extend Reactive entity with our structs to be able to use the .rx notation
+
+extension ProductName {
+    static var all: Single<[ProductName]> {
+        return Single.create { single in
+            ProductName.getAll { list in
+                single(.success(list))
+            }
+            return Disposables.create()
+        }
+    }
+}
+
+extension ProductDescription {
+    static var all: Single<[ProductDescription]> {
+        return Single.create { single in
+            ProductDescription.getAll { list in
+                single(.success(list))
+            }
+            return Disposables.create()
+        }
+    }
+}
+
+
 class ViewController: UIViewController {
 
     @IBOutlet var tableView: UITableView!
+
+    var disposeBag: DisposeBag = .init()
 
     var products: [Product] = [] {
         didSet {
@@ -25,28 +52,16 @@ class ViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
 
-        let group = DispatchGroup()
-
-        var nameList: [ProductName] = []
-        var descriptionList: [ProductDescription] = []
-
-        group.enter()
-        ProductName.getAll { list in
-            nameList = list
-            group.leave()
-        }
-
-        group.enter()
-        ProductDescription.getAll { list in
-            descriptionList = list
-            group.leave()
-        }
-
-        group.notify(queue: .main) {
+        Observable.zip(
+            ProductName.all.asObservable(),
+            ProductDescription.all.asObservable()
+        ).subscribe { nameList, descriptionList in
             nameList.enumerated().forEach { (offset, productName) in
                 self.products.append(.init(id: productName.id, name: productName.name, description: descriptionList[offset].description))
             }
         }
+        .disposed(by: disposeBag)
+
     }
 
     func updateView() {
@@ -80,5 +95,3 @@ extension ViewController: UITableViewDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
 }
-
-
