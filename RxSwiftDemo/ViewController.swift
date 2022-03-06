@@ -44,10 +44,11 @@ class ViewController: UIViewController {
 
     var disposeBag: DisposeBag = .init()
 
-    var products: [Product] = [] {
-        didSet {
-            updateView()
-        }
+
+    var productsRelay: BehaviorRelay<[Product]> = BehaviorRelay(value: [])
+
+    var products: [Product] {
+        productsRelay.value
     }
 
 
@@ -56,14 +57,20 @@ class ViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
 
+        productsRelay.subscribe { products in
+            self.updateView()
+        }
+        .disposed(by: disposeBag)
+
         Observable.zip(
             ProductName.rx.all.asObservable(),
             ProductDescription.rx.all.asObservable()
-        ).subscribe { nameList, descriptionList in
-            nameList.enumerated().forEach { (offset, productName) in
-                self.products.append(.init(id: productName.id, name: productName.name, description: descriptionList[offset].description))
+        ).map { (nameList, descriptionList) in
+            return nameList.enumerated().map { (offset, productName) in
+                return Product(id: productName.id, name: productName.name, description: descriptionList[offset].description)
             }
         }
+        .bind(to: productsRelay)
         .disposed(by: disposeBag)
 
     }
