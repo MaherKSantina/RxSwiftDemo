@@ -25,11 +25,26 @@ class ViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
 
+        let group = DispatchGroup()
+
+        var nameList: [ProductName] = []
+        var descriptionList: [ProductDescription] = []
+
+        group.enter()
         ProductName.getAll { list in
-            list.forEach { productName in
-                ProductDescription.getByID(id: productName.id) { productDescription in
-                    self.products.append(.init(id: productName.id, name: productName.name, description: productDescription.description))
-                }
+            nameList = list
+            group.leave()
+        }
+
+        group.enter()
+        ProductDescription.getAll { list in
+            descriptionList = list
+            group.leave()
+        }
+
+        group.notify(queue: .main) {
+            nameList.enumerated().forEach { (offset, productName) in
+                self.products.append(.init(id: productName.id, name: productName.name, description: descriptionList[offset].description))
             }
         }
     }
@@ -65,4 +80,5 @@ extension ViewController: UITableViewDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
 }
+
 
